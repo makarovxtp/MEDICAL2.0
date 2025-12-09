@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: flask-app
+    env: python
+    buildCommand: ""
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PINECONE_API_KEY
+        value: <your-pinecone-api-key>
+      - key: GROQ_API_KEY
+        value: <your-groq-api-key>
+      - key: LANGCHAIN_API_KEY
+        value: <your-langchain-api-key>

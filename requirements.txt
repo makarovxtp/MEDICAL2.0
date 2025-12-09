@@ -1,0 +1,17 @@
+ctransformers
+sentence-transformers==3.0.1
+pinecone-client==3.0.0
+langchain==0.2.7
+langchain-pinecone==0.0.3
+langchain-text-splitters==0.2.2
+langchain-core==0.2.18
+langchain-community==0.2.7
+langsmith==0.1.84
+langserve==0.2.2
+langsmith==0.1.84
+flask
+pypdf
+
+langchain-groq==0.1.6
+-e .
+python-dotenv
