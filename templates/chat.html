@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Medical Chatbot</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+    <!-- Bootstrap -->
+    <link rel="stylesheet"
+          href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
+          integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO"
+          crossorigin="anonymous">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet"
+          href="https://use.fontawesome.com/releases/v5.5.0/css/all.css"
+          integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU"
+          crossorigin="anonymous">
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"
+            integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+            crossorigin="anonymous"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+
+<body>
+    <div class="chat-page-bg">
+        <div class="chat-shell">
+            <div class="card chat-card">
+
+                <!-- HEADER -->
+                <div class="card-header msg_head">
+                    <div class="chat-header-top">
+                        <div class="avatar-wrapper">
+                            <img src="https://img.freepik.com/premium-vector/robot-icon-chat-bot-sign-support-service-concept-chatbot-character-flat-style_41737-796.jpg?w=740"
+                                 class="bot-avatar"
+                                 alt="Bot Avatar">
+                        </div>
+                        <div class="header-text">
+                            <div class="title-row">
+                                <span class="chat-main-title">Medical Chatbot</span>
+                                <span class="chat-secure">Secure · 24/7</span>
+                            </div>
+                            <p class="chat-tagline">
+                                Ask me anything about your health concerns.<br>
+                                I’ll assess risk, guide symptoms, check medication safety, and summarize for doctors.
+                            </p>
+
+                            <!-- Header actions -->
+                            <div class="header-actions">
+                                <button type="button" id="flowToggle" class="mode-pill">
+                                    Guided check: Off
+                                </button>
+                                <button type="button" id="summaryBtn" class="mode-pill secondary-pill">
+                                    Doctor summary
+                                </button>
+                                <button type="button" id="dashboardBtn" class="mode-pill secondary-pill">
+                                    Session health
+                                </button>
+                                <button type="button" id="voiceToggle" class="mode-pill secondary-pill">
+                                    Voice: Off
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CHAT BODY -->
+                <div id="messageFormeight" class="card-body msg_card_body">
+                    <!-- Messages appended here -->
+                </div>
+
+                <!-- FOOTER -->
+                <div class="card-footer">
+                    <form id="messageArea" class="input-row">
+                        <div class="input-wrapper">
+                            <input
+                                type="text"
+                                id="text"
+                                name="msg"
+                                placeholder="Type your message..."
+                                autocomplete="off"
+                                class="type_msg"
+                                required />
+                        </div>
+
+                        <!-- Medication safety button -->
+                        <button type="button" id="medBtn" class="med_btn" title="Medication safety">
+                            <i class="fas fa-pills"></i>
+                        </button>
+
+                        <!-- Voice input button -->
+                        <button type="button" id="micBtn" class="voice_btn" title="Voice input">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+
+                        <!-- Send button -->
+                        <button type="submit" id="send" class="send_btn">
+                            <i class="fas fa-location-arrow"></i>
+                        </button>
+                    </form>
+                    <div class="disclaimer-row">
+                        <span class="disclaimer-icon">⚠</span>
+                        <span class="disclaimer-text">
+                            This chatbot does not replace professional medical advice.
+                        </span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Optional Bootstrap JS -->
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"
+            integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy"
+            crossorigin="anonymous"></script>
+
+    <script>
+        $(document).ready(function () {
+            function getCurrentTime() {
+                const d = new Date();
+                const h = d.getHours().toString().padStart(2, "0");
+                const m = d.getMinutes().toString().padStart(2, "0");
+                return h + ":" + m;
+            }
+
+            function scrollToBottom() {
+                const box = $("#messageFormeight")[0];
+                box.scrollTop = box.scrollHeight;
+            }
+
+            let flowMode = false;   // guided check
+            let voiceMode = false;  // TTS for bot messages
+
+            // Toggle guided check mode
+            $("#flowToggle").on("click", function () {
+                flowMode = !flowMode;
+                if (flowMode) {
+                    $("#flowToggle").text("Guided check: On");
+                    $("#flowToggle").addClass("mode-pill-active");
+                } else {
+                    $("#flowToggle").text("Guided check: Off");
+                    $("#flowToggle").removeClass("mode-pill-active");
+                }
+            });
+
+            // Toggle voice mode (TTS)
+            $("#voiceToggle").on("click", function () {
+                voiceMode = !voiceMode;
+                if (voiceMode) {
+                    $("#voiceToggle").text("Voice: On");
+                    $("#voiceToggle").addClass("mode-pill-active");
+                } else {
+                    $("#voiceToggle").text("Voice: Off");
+                    $("#voiceToggle").removeClass("mode-pill-active");
+                    if ('speechSynthesis' in window) {
+                        window.speechSynthesis.cancel();
+                    }
+                }
+            });
+
+            // Speech synthesis (TTS)
+            function speakText(text) {
+                if (!voiceMode) return;
+                if (!("speechSynthesis" in window)) return;
+                if (!text) return;
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = "en-US";
+                window.speechSynthesis.speak(utterance);
+            }
+
+            // Voice input (STT)
+            let recognition = null;
+            if ("webkitSpeechRecognition" in window) {
+                recognition = new webkitSpeechRecognition();
+            } else if ("SpeechRecognition" in window) {
+                recognition = new SpeechRecognition();
+            }
+
+            if (recognition) {
+                recognition.lang = "en-IN";
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.onresult = function (event) {
+                    const transcript = event.results[0][0].transcript;
+                    $("#text").val(transcript);
+                };
+                recognition.onerror = function () {
+                    console.log("Speech recognition error");
+                };
+            }
+
+            $("#micBtn").on("click", function () {
+                if (!recognition) {
+                    alert("Voice input is not supported in this browser.");
+                    return;
+                }
+                recognition.start();
+            });
+
+            function appendUserMessage(rawText, time) {
+                const userHtml = `
+                    <div class="d-flex justify-content-end mb-4">
+                        <div class="user-bubble-wrapper">
+                            <div class="user-avatar-circle">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="msg_cotainer_send">
+                                ${rawText}
+                                <span class="msg_time_send">${time}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                $("#messageFormeight").append(userHtml);
+            }
+
+            function appendBotMessage(htmlContent, time) {
+                const botHtml = `
+                    <div class="d-flex justify-content-start mb-4">
+                        <div class="img_cont_msg">
+                            <img src="https://img.freepik.com/premium-vector/robot-icon-chat-bot-sign-support-service-concept-chatbot-character-flat-style_41737-796.jpg?w=740"
+                                 class="bot-avatar-small"
+                                 alt="Bot Avatar">
+                        </div>
+                        <div class="msg_cotainer">
+                            ${htmlContent}
+                            <div class="msg-tools">
+                                <button type="button" class="simplify-btn">Explain simply</button>
+                            </div>
+                            <span class="msg_time">${time}</span>
+                        </div>
+                    </div>
+                `;
+                const $elements = $($.parseHTML(botHtml));
+                $("#messageFormeight").append($elements);
+                const speakTextContent = $elements.find(".bot-answer-text").text();
+                if (speakTextContent) {
+                    speakText(speakTextContent);
+                }
+            }
+
+            function sendMessage(mode) {
+                const time = getCurrentTime();
+                const rawText = $("#text").val().trim();
+                if (!rawText) return;
+
+                appendUserMessage(rawText, time);
+                $("#text").val("");
+                scrollToBottom();
+
+                $.ajax({
+                    data: { msg: rawText, mode: mode },
+                    type: "POST",
+                    url: "/get",
+                }).done(function (data) {
+                    appendBotMessage(data, time);
+                    scrollToBottom();
+                }).fail(function () {
+                    const errorHtml = `
+                        <div class="d-flex justify-content-start mb-4">
+                            <div class="error_msg">
+                                Sorry, something went wrong. Please try again.
+                            </div>
+                        </div>
+                    `;
+                    $("#messageFormeight").append($.parseHTML(errorHtml));
+                    scrollToBottom();
+                });
+            }
+
+            // Normal send (chat or flow mode)
+            $("#messageArea").on("submit", function (event) {
+                event.preventDefault();
+                const mode = flowMode ? "flow" : "chat";
+                sendMessage(mode);
+            });
+
+            // Medication safety button
+            $("#medBtn").on("click", function () {
+                sendMessage("med");
+            });
+
+            // Doctor summary button
+            $("#summaryBtn").on("click", function () {
+                const time = getCurrentTime();
+                $.ajax({
+                    type: "POST",
+                    url: "/summary",
+                }).done(function (data) {
+                    appendBotMessage(data, time);
+                    scrollToBottom();
+                }).fail(function () {
+                    const errorHtml = `
+                        <div class="d-flex justify-content-start mb-4">
+                            <div class="error_msg">
+                                Could not generate summary. Please try again later.
+                            </div>
+                        </div>
+                    `;
+                    $("#messageFormeight").append($.parseHTML(errorHtml));
+                    scrollToBottom();
+                });
+            });
+
+            // Session health dashboard button
+            $("#dashboardBtn").on("click", function () {
+                const time = getCurrentTime();
+                $.ajax({
+                    type: "POST",
+                    url: "/dashboard",
+                }).done(function (data) {
+                    appendBotMessage(data, time);
+                    scrollToBottom();
+                }).fail(function () {
+                    const errorHtml = `
+                        <div class="d-flex justify-content-start mb-4">
+                            <div class="error_msg">
+                                Could not load session health. Please try again later.
+                            </div>
+                        </div>
+                    `;
+                    $("#messageFormeight").append($.parseHTML(errorHtml));
+                    scrollToBottom();
+                });
+            });
+
+            // Explain Simply button (delegated handler)
+            $(document).on("click", ".simplify-btn", function () {
+                const container = $(this).closest(".msg_cotainer");
+                const baseText = container.find(".bot-answer-text").text().trim();
+                if (!baseText) return;
+
+                $.ajax({
+                    type: "POST",
+                    url: "/simplify",
+                    data: { text: baseText },
+                }).done(function (data) {
+                    container.append(data);
+                    scrollToBottom();
+                }).fail(function () {
+                    const errorHtml = `
+                        <div class="d-flex justify-content-start mb-2">
+                            <div class="error_msg">
+                                Could not simplify this answer right now.
+                            </div>
+                        </div>
+                    `;
+                    $("#messageFormeight").append($.parseHTML(errorHtml));
+                    scrollToBottom();
+                });
+            });
+        });
+    </script>
+</body>
+</html>
